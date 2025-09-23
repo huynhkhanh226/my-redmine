@@ -8,7 +8,7 @@ services:
       REDMINE_DB_MYSQL: 192.168.1.4
       REDMINE_DB_DATABASE: redmine
       REDMINE_DB_USERNAME: docker
-      REDMINE_DB_PASSWORD: password123
+      REDMINE_DB_PASSWORD: 
     volumes:
       - redmine_data:/usr/src/redmine/files
 volumes:
