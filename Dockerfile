@@ -72,19 +72,16 @@ RUN set -eux; \
 	chmod 1777 "$HOME"
 
 ENV REDMINE_VERSION 6.0.7
-ENV REDMINE_DOWNLOAD_URL https://www.redmine.org/releases/redmine-6.0.7.tar.gz
-ENV REDMINE_DOWNLOAD_SHA256 8824560a07673dc7b59f1ca0bf9d7cd854c6c4c97d0fe555a5dbeba332b8dfe8
+# ENV REDMINE_DOWNLOAD_URL https://www.redmine.org/releases/redmine-6.0.7.tar.gz
+# ENV REDMINE_DOWNLOAD_SHA256 8824560a07673dc7b59f1ca0bf9d7cd854c6c4c97d0fe555a5dbeba332b8dfe8
 ENV RAILS_LOG_TO_STDOUT true
 
+COPY . /usr/src/redmine
 RUN set -eux; \
-	wget -O redmine.tar.gz "$REDMINE_DOWNLOAD_URL"; \
-	echo "$REDMINE_DOWNLOAD_SHA256 *redmine.tar.gz" | sha256sum -c -; \
-	tar -xf redmine.tar.gz --strip-components=1; \
-	rm redmine.tar.gz files/delete.me log/delete.me; \
 	# https://www.redmine.org/projects/redmine/wiki/RedmineInstall#Step-8-File-system-permissions
 	mkdir -p log public/assets public/plugin_assets sqlite tmp/pdf tmp/pids; \
 	chown -R redmine:redmine ./; \
-# fix permissions for running as an arbitrary user
+	# fix permissions for running as an arbitrary user
 	chmod -R ugo=rwX config db sqlite; \
 	find log tmp -type d -exec chmod 1777 '{}' +
 
