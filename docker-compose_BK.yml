@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  redmine:
+    image: my-redmine:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    environment:
+      REDMINE_DB_MYSQL: db
+      REDMINE_DB_DATABASE: redmine
+      REDMINE_DB_USERNAME: redmine
+      REDMINE_DB_PASSWORD: redminepass
+    volumes:
+      - redmine_data:/usr/src/redmine/files
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: redmine
+      MYSQL_USER: redmine
+      MYSQL_PASSWORD: redminepass
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - db_data:/var/lib/mysql
+
+volumes:
+  redmine_data:
+  db_data:

@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  redmine:
+    image: my-redmine:latest
+    ports:
+      - "3000:3000"
+    environment:
+      REDMINE_DB_MYSQL: 192.168.1.4
+      REDMINE_DB_DATABASE: redmine
+      REDMINE_DB_USERNAME: docker
+      REDMINE_DB_PASSWORD: password123
+    volumes:
+      - redmine_data:/usr/src/redmine/files
+volumes:
+  redmine_data:
+  db_data:
