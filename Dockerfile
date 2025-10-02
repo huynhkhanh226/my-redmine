@@ -1,146 +1,100 @@
-#
-# NOTE: THIS DOCKERFILE IS GENERATED VIA "apply-templates.sh"
-#
-# PLEASE DO NOT EDIT IT DIRECTLY.
-#
+# Use a Rocky Linux base image
+FROM rockylinux:9
 
-FROM ruby:3.3-slim-bookworm
+RUN useradd -r -m -d /opt/redmine redmine
 
-# explicitly set uid/gid to guarantee that it won't change in the future
-# the values 999:999 are identical to the current user/group id assigned
-RUN groupadd -r -g 999 redmine && useradd -r -g redmine -u 999 redmine
+RUN dnf -y install httpd ;\
+	systemctl enable httpd --now; \
+	usermod -aG redmine apache; \
+	dnf -y install epel-release; 
+	#dnf config-manager --set-enabled powertools; 
 
-RUN set -eux; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-		bzr \
-		ca-certificates \
-		ghostscript \
-		git \
-		gsfonts \
-		imagemagick \
-		mercurial \
-		openssh-client \
-		subversion \
-		tini \
-		wget \
-	; \
-# allow imagemagick to use ghostscript for PDF -> PNG thumbnail conversion (4.1+)
-	sed -ri 's/(rights)="none" (pattern="PDF")/\1="read" \2/' /etc/ImageMagick-6/policy.xml; \
-	rm -rf /var/lib/apt/lists/*
+RUN dnf -y install epel-release
 
-# grab gosu for easy step-down from root
-# https://github.com/tianon/gosu/releases
-ENV GOSU_VERSION 1.18
-RUN set -eux; \
-	\
-	savedAptMark="$(apt-mark showmanual)"; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-		gnupg \
-	; \
-	rm -rf /var/lib/apt/lists/*; \
-	\
-	dpkgArch="$(dpkg --print-architecture | awk -F- '{ print $NF }')"; \
-	wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch"; \
-	wget -O /usr/local/bin/gosu.asc "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-$dpkgArch.asc"; \
-	export GNUPGHOME="$(mktemp -d)"; \
-	gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys B42F6819007F00F88E364FD4036A9C25BF357DD4; \
-	gpg --batch --verify /usr/local/bin/gosu.asc /usr/local/bin/gosu; \
-	gpgconf --kill all; \
-	rm -rf "$GNUPGHOME" /usr/local/bin/gosu.asc; \
-	\
-	apt-mark auto '.*' > /dev/null; \
-	apt-mark manual $savedAptMark > /dev/null; \
-	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-	\
-# smoke test
-	chmod +x /usr/local/bin/gosu; \
-	gosu --version; \
-	gosu nobody true
+RUN dnf -y install ruby-devel \
+	rpm-build \
+	#curl \
+	wget \
+	libxml2-devel \
+	vim \
+	make \
+	openssl-devel \
+	automake \
+	libtool \
+	ImageMagick \
+	ImageMagick-devel \
+	gcc \
+	httpd-devel \
+	libcurl-devel \
+	gcc-c++
 
-ENV RAILS_ENV production
+# RUN dnf module reset ruby -y; \
+# 	dnf module enable ruby:3.1 -y; \
+# 	dnf -y install ruby ; \
+# 	ruby -v
+
+ENV RBENV_ROOT="/root/.rbenv"
+ENV PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
+
+# Cài gói hệ thống cần thiết để build Ruby
+RUN dnf -y update && \
+    dnf -y install git gcc gcc-c++ make patch \
+    libffi-devel zlib-devel readline-devel \
+    openssl-devel bzip2 autoconf automake \
+    #libyaml-devel ncurses-devel gdbm-devel \
+    libuuid-devel && \
+    dnf clean all
+
+# Kích hoạt CRB repository
+RUN dnf install -y dnf-plugins-core && \
+    dnf config-manager --set-enabled crb && \
+    dnf groupinstall -y "Development Tools" && \
+    dnf install -y \
+        gcc make \
+        openssl-devel readline-devel zlib-devel libffi-devel \
+        libyaml-devel gdbm-devel
+
+
+
+
+# Cài rbenv và ruby-build
+RUN git clone https://github.com/rbenv/rbenv.git $RBENV_ROOT && \
+    git clone https://github.com/rbenv/ruby-build.git $RBENV_ROOT/plugins/ruby-build
+
+# Cài Ruby 3.2.2
+RUN $RBENV_ROOT/bin/rbenv install 3.2.2 && \
+    $RBENV_ROOT/bin/rbenv global 3.2.2
+
+# Kiểm tra Ruby
+RUN ruby -v
+
+
+ENV VER=5.1.0 
+COPY . /usr/src/redmine/
 WORKDIR /usr/src/redmine
+RUN chown -R redmine:redmine /usr/src/redmine
+#RUN cp config/database.yml /opt/redmine/config/database.yml
 
-# https://github.com/docker-library/redmine/issues/138#issuecomment-438834176
-# (bundler needs this for running as an arbitrary user)
-ENV HOME /home/redmine
-RUN set -eux; \
-	[ ! -d "$HOME" ]; \
-	mkdir -p "$HOME"; \
-	chown redmine:redmine "$HOME"; \
-	chmod 1777 "$HOME"
+RUN dnf groupinstall -y "Development Tools" && \
+    dnf install -y mariadb-connector-c mariadb-connector-c-devel gcc make
 
-ENV REDMINE_VERSION 6.0.7
-# ENV REDMINE_DOWNLOAD_URL https://www.redmine.org/releases/redmine-6.0.7.tar.gz
-# ENV REDMINE_DOWNLOAD_SHA256 8824560a07673dc7b59f1ca0bf9d7cd854c6c4c97d0fe555a5dbeba332b8dfe8
-ENV RAILS_LOG_TO_STDOUT true
 
-COPY . /usr/src/redmine
-RUN set -eux; \
-	# https://www.redmine.org/projects/redmine/wiki/RedmineInstall#Step-8-File-system-permissions
-	mkdir -p log public/assets public/plugin_assets sqlite tmp/pdf tmp/pids; \
-	chown -R redmine:redmine ./; \
-	# fix permissions for running as an arbitrary user
-	chmod -R ugo=rwX config db sqlite; \
-	find log tmp -type d -exec chmod 1777 '{}' +
+RUN gem install bundler
+RUN	bundle config set --local path 'vendor/bundle'
+RUN	bundle config set --local without 'development test'
+RUN bundle add webrick
+RUN	bundle install
+#RUN bundle exec rake generate_secret_token
 
-RUN set -eux; \
-	savedAptMark="$(apt-mark showmanual)"; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-		default-libmysqlclient-dev \
-		freetds-dev \
-		gcc \
-		libpq-dev \
-		libsqlite3-dev \
-		libxml2-dev \
-		libxslt-dev \
-		libyaml-dev \
-		make \
-		patch \
-		pkgconf \
-		xz-utils \
-	; \
-	rm -rf /var/lib/apt/lists/*; \
-	\
-	gosu redmine bundle config --local without 'development test'; \
-# https://github.com/redmine/redmine/commit/23dc108e70a0794f444803ac827a690085dcd557
-# ("gem puma" already exists in the Gemfile, but under "group :test" and we want it all the time)
-	puma="$(grep -E "^[[:space:]]*gem [:'\"]puma['\",[:space:]].*\$" Gemfile)"; \
-	{ echo; echo "$puma"; } | sed -re 's/^[[:space:]]+//' >> Gemfile; \
-# fill up "database.yml" with bogus entries so the redmine Gemfile will pre-install all database adapter dependencies
-# https://github.com/redmine/redmine/blob/e9f9767089a4e3efbd73c35fc55c5c7eb85dd7d3/Gemfile#L50-L79
-	echo '# the following entries only exist to force `bundle install` to pre-install all database adapter dependencies -- they can be safely removed/ignored' > ./config/database.yml; \
-	for adapter in mysql2 postgresql sqlserver sqlite3; do \
-		echo "$adapter:" >> ./config/database.yml; \
-		echo "  adapter: $adapter" >> ./config/database.yml; \
-	done; \
-# nokogiri's vendored libxml2 + libxslt do not build on mips64le, so use the apt packages when building
-	gosu redmine bundle config build.nokogiri --use-system-libraries; \
-	gosu redmine bundle install --jobs "$(nproc)"; \
-	rm ./config/database.yml; \
-# fix permissions for running as an arbitrary user
-	chmod -R ugo=rwX Gemfile.lock "$GEM_HOME"; \
-	rm -rf ~redmine/.bundle; \
-	\
-# reset apt-mark's "manual" list so that "purge --auto-remove" will remove all build dependencies
-	apt-mark auto '.*' > /dev/null; \
-	[ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
-	find /usr/local -type f -executable -exec ldd '{}' ';' \
-		| awk '/=>/ { so = $(NF-1); if (index(so, "/usr/local/") == 1) { next }; gsub("^/(usr/)?", "", so); printf "*%s\n", so }' \
-		| sort -u \
-		| xargs -r dpkg-query --search \
-		| cut -d: -f1 \
-		| sort -u \
-		| xargs -r apt-mark manual \
-	; \
-	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
+RUN for i in tmp tmp/pdf public/plugin_assets; do \
+      [ -d "$i" ] || mkdir -p "$i"; \
+    done
 
-VOLUME /usr/src/redmine/files
+RUN chown -R redmine:redmine files log tmp public/plugin_assets
+RUN chmod -R 755 /usr/src/redmine
+#RUN bundle exec rails server -u webrick -e production
+CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-e", "production"]
 
-COPY docker-entrypoint.sh /
-ENTRYPOINT ["/docker-entrypoint.sh"]
 
-EXPOSE 3000
-CMD ["rails", "server", "-b", "0.0.0.0"]
+
+	
