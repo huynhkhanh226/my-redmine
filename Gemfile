@@ -41,6 +41,8 @@ gem 'rqrcode'
 gem "html-pipeline", "~> 2.13.2"
 gem "sanitize", "~> 6.0"
 
+gem 'stringio', '3.1.7'
+
 # Optional gem for LDAP authentication
 group :ldap do
   gem 'net-ldap', '~> 0.17.0'

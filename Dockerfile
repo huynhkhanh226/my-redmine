@@ -1,19 +1,20 @@
 # Use a Rocky Linux base image
 FROM rockylinux:9
 
+# Tạo user hệ thống có ID < 1000 để chay daemon
 RUN useradd -r -m -d /opt/redmine redmine
 
-RUN dnf -y install httpd ;\
-	systemctl enable httpd --now; \
-	usermod -aG redmine apache; \
-	dnf -y install epel-release; 
-	#dnf config-manager --set-enabled powertools; 
+# Cài repos list
+RUN dnf install epel-release -y
 
-RUN dnf -y install epel-release
+RUN dnf install httpd -y
 
-RUN dnf -y install ruby-devel \
+RUN usermod -aG redmine apache
+
+RUN dnf config-manager --set-enabled crb
+
+RUN dnf install ruby-devel \
 	rpm-build \
-	#curl \
 	wget \
 	libxml2-devel \
 	vim \
@@ -23,78 +24,104 @@ RUN dnf -y install ruby-devel \
 	libtool \
 	ImageMagick \
 	ImageMagick-devel \
+	mariadb-devel \
 	gcc \
 	httpd-devel \
 	libcurl-devel \
-	gcc-c++
-
-# RUN dnf module reset ruby -y; \
-# 	dnf module enable ruby:3.1 -y; \
-# 	dnf -y install ruby ; \
-# 	ruby -v
-
-ENV RBENV_ROOT="/root/.rbenv"
-ENV PATH="$RBENV_ROOT/bin:$RBENV_ROOT/shims:$PATH"
-
-# Cài gói hệ thống cần thiết để build Ruby
-RUN dnf -y update && \
-    dnf -y install git gcc gcc-c++ make patch \
-    libffi-devel zlib-devel readline-devel \
-    openssl-devel bzip2 autoconf automake \
-    #libyaml-devel ncurses-devel gdbm-devel \
-    libuuid-devel && \
-    dnf clean all
-
-# Kích hoạt CRB repository
-RUN dnf install -y dnf-plugins-core && \
-    dnf config-manager --set-enabled crb && \
-    dnf groupinstall -y "Development Tools" && \
-    dnf install -y \
-        gcc make \
-        openssl-devel readline-devel zlib-devel libffi-devel \
-        libyaml-devel gdbm-devel
+	gcc-c++ \
+	libyaml-devel \
+	procps-ng -y
 
 
+RUN dnf module list ruby
 
+RUN dnf module install ruby:3.3 -y
 
-# Cài rbenv và ruby-build
-RUN git clone https://github.com/rbenv/rbenv.git $RBENV_ROOT && \
-    git clone https://github.com/rbenv/ruby-build.git $RBENV_ROOT/plugins/ruby-build
+# ENV VER=5.1.0
 
-# Cài Ruby 3.2.2
-RUN $RBENV_ROOT/bin/rbenv install 3.2.2 && \
-    $RBENV_ROOT/bin/rbenv global 3.2.2
+# RUN curl -s https://www.redmine.org/releases/redmine-$VER.tar.gz
 
-# Kiểm tra Ruby
-RUN ruby -v
+# COPY redmine-$VER.tar.gz /tmp/
 
+# RUN tar xz -f /tmp/redmine.tar.gz -C /opt/redmine/ --strip-components=1 \
+#     && chown -R redmine:redmine /opt/redmine
 
-ENV VER=5.1.0 
-COPY . /usr/src/redmine/
-WORKDIR /usr/src/redmine
-RUN chown -R redmine:redmine /usr/src/redmine
-#RUN cp config/database.yml /opt/redmine/config/database.yml
+WORKDIR /opt/redmine
 
-RUN dnf groupinstall -y "Development Tools" && \
-    dnf install -y mariadb-connector-c mariadb-connector-c-devel gcc make
+COPY . ./
 
+RUN chown -R redmine:redmine /opt/redmine
+
+RUN ls -alh /opt/redmine
+
+RUN su - redmine
+
+WORKDIR /opt/redmine
+
+# RUN cp config/configuration.yml.example config/configuration.yml
+
+# RUN cp config/database.yml.example config/database.yml
 
 RUN gem install bundler
-RUN	bundle config set --local path 'vendor/bundle'
-RUN	bundle config set --local without 'development test'
-RUN bundle add webrick
-RUN	bundle install
-#RUN bundle exec rake generate_secret_token
 
-RUN for i in tmp tmp/pdf public/plugin_assets; do \
-      [ -d "$i" ] || mkdir -p "$i"; \
-    done
+RUN bundle config set --local path 'vendor/bundle'
+
+RUN bundle config set --local without 'development test'
+
+RUN set -eux; \
+    echo "=== Ruby version ==="; \
+    ruby -v; \
+    echo "=== RubyGems version ==="; \
+    gem -v; \
+    echo "=== Bundler version ==="; \
+    bundle -v || echo "Bundler chưa cài"; \
+    echo "======================="
+
+# Cập nhật RubyGems và Bundler
+RUN gem install rubygems-update --no-document \
+ && update_rubygems \
+ && gem install bundler
+
+RUN gem install stringio -v 3.1.7
+
+RUN bundle install
+
+RUN bundle exec rake generate_secret_token
+
+RUN mkdir -p tmp log tmp/pdf public/plugin_assets
 
 RUN chown -R redmine:redmine files log tmp public/plugin_assets
-RUN chmod -R 755 /usr/src/redmine
-#RUN bundle exec rails server -u webrick -e production
-CMD ["bundle", "exec", "rails", "server", "-b", "0.0.0.0", "-e", "production"]
+
+RUN chmod -R 755 /opt/redmine/
+
+RUN su - redmine
+
+# RUN echo 'gem "webrick"' >> Gemfile
+
+# RUN bundle install
+
+# RUN firewall-cmd --add-port=3000/tcp --permanent; \
+#	firewall-cmd --reload
+
+# RUN curl --fail -sSLo \
+# /etc/yum.repos.d/passenger.repo \
+# https://oss-binaries.phusionpassenger.com/yum/definitions/el-passenger.repo
 
 
+# RUN dnf install -y mod_passenger
 
-	
+# RUN httpd -M | grep passenger
+
+# COPY config/redmine.conf /etc/httpd/conf.d/redmine.conf
+
+RUN gem install passenger --no-document
+
+RUN passenger-install-apache2-module
+
+COPY ./config/00-passenger.conf /etc/httpd/conf.modules.d/00-passenger.conf
+
+COPY ./config/redmine.conf /etc/httpd/conf.d/redmine.conf
+
+CMD ["httpd", "-D", "FOREGROUND"]
+
+# RUN bundle exec rails runner "puts 'Redmine loaded OK'"
