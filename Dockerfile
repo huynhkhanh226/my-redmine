@@ -22,8 +22,6 @@ RUN dnf install ruby-devel \
 	openssl-devel \
 	automake \
 	libtool \
-	ImageMagick \
-	ImageMagick-devel \
 	mariadb-devel \
 	gcc \
 	httpd-devel \
@@ -31,6 +29,9 @@ RUN dnf install ruby-devel \
 	gcc-c++ \
 	libyaml-devel \
 	procps-ng -y
+
+RUN dnf install ImageMagick \
+	ImageMagick-devel -y
 
 
 RUN dnf module list ruby
