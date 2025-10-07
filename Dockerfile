@@ -172,3 +172,11 @@ Khi xuất khẩu phần mềm có ImageMagick, cần kiểm tra quy định xu�
 👉 Tóm tắt ngắn nhất:
 
 Bạn được phép dùng, sửa, và bán phần mềm có chứa ImageMagick, miễn là bạn ghi công cho ImageMagick Studio LLC và không dùng thương hiệu của họ sai mục đích. Không cần công khai mã nguồn hoặc gửi lại thay đổi.
+
+
+
+Khi license nói “tuân thủ license” nghĩa là:
+✅ Kèm file license của ImageMagick trong gói phân phối.
+✅ Ghi công cho ImageMagick Studio LLC ở tài liệu hoặc giao diện phù hợp.
+
+→ Làm đủ hai điều này thì bạn có thể bán, đóng gói, hoặc phân phối sản phẩm chứa ImageMagick hợp pháp và đầy đủ.
