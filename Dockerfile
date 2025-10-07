@@ -126,3 +126,49 @@ COPY ./config/redmine.conf /etc/httpd/conf.d/redmine.conf
 CMD ["httpd", "-D", "FOREGROUND"]
 
 # RUN bundle exec rails runner "puts 'Redmine loaded OK'"
+
+
+
+✅ Bạn được phép:
+
+Tải về và sử dụng miễn phí ImageMagick cho cá nhân, nội bộ công ty hoặc mục đích thương mại.
+
+Đưa ImageMagick vào sản phẩm hoặc gói phần mềm mà bạn tạo ra.
+
+Kết nối (link) hoặc trộn mã nguồn của ImageMagick với phần mềm có license khác.
+
+Mở rộng quyền sáng chế (patent) cho phần mềm sử dụng mã của ImageMagick.
+
+❌ Bạn không được phép:
+
+Phân phối lại phần mềm có nguồn gốc từ ImageMagick mà không ghi công (attribution) đúng cách.
+
+Sử dụng thương hiệu, logo, tên “ImageMagick” để ngụ ý rằng họ ủng hộ hoặc hợp tác với bạn, trừ khi có phép.
+
+Ngụ ý rằng bạn là người tạo ra phần mềm ImageMagick.
+
+⚖️ Bạn bắt buộc phải:
+
+Đính kèm bản sao license này khi phân phối phần mềm có chứa ImageMagick.
+
+Ghi rõ công lao cho ImageMagick Studio LLC trong tài liệu hoặc phần “About” của sản phẩm.
+
+💡 Bạn không bắt buộc phải:
+
+Cung cấp mã nguồn gốc hoặc mã đã chỉnh sửa khi phân phối phần mềm chứa ImageMagick.
+
+Gửi lại các thay đổi của bạn cho ImageMagick Studio LLC (nhưng được khuyến khích).
+
+ℹ️ Một số điểm bổ sung:
+
+ImageMagick hoàn toàn miễn phí.
+
+Bạn có thể phân phối hoặc bán phần mềm chứa ImageMagick nếu tuân thủ license.
+
+License tương thích với GPLv3 (có thể dùng chung).
+
+Khi xuất khẩu phần mềm có ImageMagick, cần kiểm tra quy định xuất khẩu (export classification).
+
+👉 Tóm tắt ngắn nhất:
+
+Bạn được phép dùng, sửa, và bán phần mềm có chứa ImageMagick, miễn là bạn ghi công cho ImageMagick Studio LLC và không dùng thương hiệu của họ sai mục đích. Không cần công khai mã nguồn hoặc gửi lại thay đổi.
