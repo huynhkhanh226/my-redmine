@@ -85,3 +85,32 @@ Description  : ImageMagick-devel contains the library links and header files you
 
 
 
+Có 3 tính nang sử dụng ImageMagick
+
+Ảnh thumnail cho issue
+Ảnh thumnail cho file
+Ảnh thumnail cho User (phải sử dụng kèm plugin redmine_local_avatars)
+
+
+
+Installed Packages
+Name         : urw-base35-fonts
+Version      : 20200910
+Release      : 6.el9
+Architecture : noarch
+Size         : 5.3 k
+Source       : urw-base35-fonts-20200910-6.el9.src.rpm
+Repository   : @System
+From repo    : appstream
+Summary      : Core Font Set containing 35 freely distributable fonts from (URW)++
+URL          : https://www.urwpp.de/en/
+License      : AGPLv3
+Description  :
+             : The Level 2 Core Font Set is a PostScript specification of 35 base fonts that
+             : can be used with any PostScript file. These fonts are provided freely
+             : by (URW)++ company, and are mainly utilized by applications using Ghostscript.
+             :
+             : This meta-package will install all the 35 fonts from the urw-base35-fonts.
+
+
+
